@@ -13,7 +13,7 @@ This repository explores various approaches to parallelizing AlphaZero training 
 - **Utilization**: This approach maximizes CPU usage and allows multiple tasks to share the GPU, increasing overall hardware utilization.
 
 ### 2. JAX-based Implementation (in `alphazero_jax/`)
-- **High-performance computation** using [JAX](https://jax.readthedocs.io/en/latest/) and [MCTX] (https://github.com/google-deepmind/mctx) for neural network operations, training, and Monte Carlo Tree Search.
+- **High-performance computation** using [JAX](https://jax.readthedocs.io/en/latest/) and [MCTX](https://github.com/google-deepmind/mctx) for neural network operations, training, and Monte Carlo Tree Search.
 - **JIT compilation** accelerates inference and training on GPU/TPU by compiling Python functions to optimized machine code.
 - **Vectorization and batching** with `vmap` and `pmap` to parallelize MCTS simulations and neural network calls across multiple states/devices.
 - **Hardware utilization**: JAX maximizes GPU/TPU usage through efficient batch processing and eliminates Python overhead in critical paths.
