@@ -1,116 +1,27 @@
-# AaduPulliPGXEnv - Fixed Implementation
+# AlphaZero with JAX-based Implementation
 
-This directory contains the corrected implementation of the AaduPulliPGXEnv (Aadu Puli Aattam game) for AlphaZero training, with the reward system bug fixed.
+This directory contains an implementation of AlphaZero for a custom turn-based strategy game, using [JAX](https://jax.readthedocs.io/en/latest/) for high-performance computation and parallelization. Monte Carlo Tree Search (MCTS) is combined with a convolutional neural network (CNN) for policy and value prediction. JAX is used to accelerate neural network operations and enable efficient parallelization across devices like GPUs and TPUs.
 
-## Problem Resolved
+## How It Works
 
-**Original Issue**: AssertionError during training - "Player 0 (Goat) should have a reward of -1" when the tiger won.
+- **JAX** provides just-in-time (JIT) compilation and automatic differentiation to speed up computations and enable efficient batching and parallelization.
+- **MCTX** By [DeepMind](https://github.com/google-deepmind/mctx), is Monte Carlo Tree Search implementation in JAX
+- **Neural network inference and training** are performed on the GPU/TPU using JAX's optimized primitives.
 
-**Root Cause**: The reward calculation logic in the `_step` method was incorrect, giving the wrong rewards when the game terminated.
+### JAX JIT and Vectorization
 
-**Solution**: Fixed the reward assignment to correctly give:
-- Tiger win: Goat gets -1, Tiger gets +1 → `[-1.0, 1.0]`
-- Goat win: Goat gets +1, Tiger gets -1 → `[1.0, -1.0]`
-- Draw: Both get 0 → `[0.0, 0.0]`
+- `@jax.jit`: Compiles the function for efficient execution on CPU/GPU/TPU, eliminating Python overhead.
+- `jax.vmap`: Automatically vectorizes the function to handle batches of inputs efficiently, enabling parallel processing of multiple game states.
 
-## Files
+#### Effect on Utilization
 
-### `aadupulli_env.py`
-Complete PGX-compatible environment implementation with:
-- ✅ Fixed reward system
-- ✅ All required abstract methods (`_init`, `_step`, `_observe`, `_legal_action_mask`)
-- ✅ Proper game logic for Aadu Puli Aattam
-- ✅ JAX-compatible implementation
+- **CPU Utilization**: MCTS remains CPU-bound, but JAX's JIT compilation reduces overhead in neural network calls.
+- **GPU/TPU Utilization**: JAX enables high utilization by compiling operations to optimized kernels and supporting batch processing. Multiple MCTS simulations can be batched together for inference, improving hardware efficiency.
+- **Parallelization**: JAX's `pmap` can distribute computations across multiple devices if available, further increasing throughput.
 
-### `train.py`
-Training script framework that provides:
-- Environment testing functionality
-- AlphaZero configuration setup
-- Tiger win scenario simulation
-- Integration instructions
+**Note:** JAX's functional programming paradigm requires careful state management and [pure functions](https://docs.jax.dev/en/latest/notebooks/Common_Gotchas_in_JAX.html#pure-functions), but it provides significant performance gains for numerical computations in AlphaZero.
 
-### `test_rewards.py`
-Test suite for validating the reward system fix without external dependencies.
+## Observations
 
-### `verify_fix.py`
-Specific verification that the AssertionError has been resolved.
-
-### `integration_test.py`
-Complete integration test suite verifying all components work together.
-
-## Usage
-
-1. **Install Dependencies:**
-   ```bash
-   pip install jax jaxlib pgx-game flax
-   ```
-
-2. **Import and Use:**
-   ```python
-   from aadupulli_env import AaduPulliPGXEnv
-   
-   env = AaduPulliPGXEnv()
-   key = jax.random.PRNGKey(42)
-   state = env.init(key)
-   ```
-
-3. **Training Configuration:**
-   ```python
-   from train import create_alphazero_config
-   config = create_alphazero_config()
-   ```
-
-## Game Rules (Aadu Puli Aattam)
-
-- **Players**: 2 (Goat player vs Tiger player)
-- **Pieces**: 15 Goats, 3 Tigers
-- **Board**: 23 positions with specific adjacency relationships
-- **Objective**: 
-  - Tigers win by capturing 10 goats
-  - Goats win by blocking all tiger movements
-- **Phases**:
-  1. Placement phase: Goats are placed on empty positions
-  2. Movement phase: Both pieces can move to adjacent positions
-  3. Tigers can jump over goats to capture them
-
-## Testing
-
-Run the test suite to verify everything works:
-
-```bash
-python test_rewards.py      # Test reward system
-python verify_fix.py        # Verify AssertionError fix  
-python integration_test.py  # Full integration test
-```
-
-## Key Fix Details
-
-The critical fix was in the `_step` method around line 165-170:
-
-```python
-# FIXED: Calculate reward based on termination condition
-reward = jax.lax.cond(
-    terminated,
-    lambda: jax.lax.cond(
-        t_win,
-        lambda: jnp.array([-1.0, 1.0]),  # Tiger win: Goat gets -1, Tiger gets +1
-        lambda: jax.lax.cond(
-            g_win,
-            lambda: jnp.array([1.0, -1.0]),  # Goat win: Goat gets +1, Tiger gets -1
-            lambda: jnp.zeros(2, dtype=jnp.float32)  # Draw
-        )
-    ),
-    lambda: jnp.zeros(2, dtype=jnp.float32)  # No reward if not terminated
-)
-```
-
-This ensures that when the tiger wins by capturing 10 goats, the goat player (Player 0) correctly receives a negative reward (-1.0) and the tiger player (Player 1) receives a positive reward (+1.0).
-
-## Status: ✅ COMPLETE
-
-All problem statement requirements have been addressed:
-- ✅ AssertionError resolved
-- ✅ PGX environment implementation complete
-- ✅ Training script provided
-- ✅ Reward system fixed and tested
-- ✅ Ready for AlphaZero integration
+- **GPU/TPU Utilization**: JAX maximizes hardware utilization through compilation and vectorization, making neural network operations much faster than in pure NumPy implementations.
+- **Scalability**: JAX's design allows for easy scaling to multiple GPUs or TPUs, providing better performance than CPU-only implementations.
